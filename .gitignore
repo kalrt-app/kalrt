@@ -47,3 +47,5 @@ coverage/
 
 # Credentials
 scripts/sheets-token.json
+
+.vercel
