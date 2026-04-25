@@ -1,7 +1,13 @@
-# RestockIt - Shopify Back-in-Stock App
+# KALRT - Shopify Back-in-Stock App
 
 ## What This Is
 Shopify embedded app competing with Notify Me!, STOQ, Appikon. Core promise: "The back-in-stock app that just works. Honest pricing. Reliable notifications."
+
+## Brand
+- **Name:** KALRT (pronounced "K-alert")
+- **Domain:** kalrt.com (to purchase)
+- **GitHub:** github.com/kalrt-app/kalrt
+- **Supabase:** yryloxjlyxhasydecgwj.supabase.co
 
 ## Stack
 - **Framework:** Remix (Shopify's recommended)

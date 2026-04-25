@@ -1,4 +1,4 @@
-// RestockIt Database Schema
+// KALRT Database Schema
 // Shopify Back-in-Stock Notification App
 
 generator client {
@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Shopify store data
