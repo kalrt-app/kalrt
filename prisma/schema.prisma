@@ -1,0 +1,194 @@
+// RestockIt Database Schema
+// Shopify Back-in-Stock Notification App
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Shopify store data
+model Store {
+  id              String   @id @default(cuid())
+  shopDomain      String   @unique // myshop.myshopify.com
+  shopName        String?
+  accessToken     String
+  email           String?
+  plan            Plan     @default(FREE)
+  notificationsUsed Int    @default(0)
+  notificationsLimit Int   @default(50)
+  installedAt     DateTime @default(now())
+  uninstalledAt   DateTime?
+  settings        Json     @default("{}")
+
+  subscribers     Subscriber[]
+  notifications   Notification[]
+  products        Product[]
+  templates       Template[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Plan {
+  FREE
+  STARTER
+  GROWTH
+  SCALE
+}
+
+// Email/SMS subscribers waiting for restock
+model Subscriber {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  email       String?
+  phone       String?  // For SMS
+
+  productId   String   // Shopify product ID
+  variantId   String?  // Shopify variant ID (for size/color tracking)
+  productTitle String?
+  variantTitle String?
+
+  status      SubscriberStatus @default(WAITING)
+  notifiedAt  DateTime?
+  convertedAt DateTime? // Purchased after notification
+
+  source      String?  // Where they signed up (product page, collection, etc.)
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notifications Notification[]
+
+  @@index([storeId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([status])
+}
+
+enum SubscriberStatus {
+  WAITING     // Waiting for restock
+  NOTIFIED    // Notification sent
+  CONVERTED   // Purchased after notification
+  UNSUBSCRIBED
+  BOUNCED
+}
+
+// Sent notifications tracking
+model Notification {
+  id            String   @id @default(cuid())
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  subscriberId  String
+  subscriber    Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  type          NotificationType
+  provider      String   // sendgrid, mailgun, twilio
+
+  status        NotificationStatus @default(PENDING)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  bouncedAt     DateTime?
+
+  errorMessage  String?
+  externalId    String?  // Provider's message ID
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([subscriberId])
+  @@index([status])
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
+}
+
+// Cached product data for quick lookups
+model Product {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  shopifyProductId String
+  title       String
+  handle      String?
+  imageUrl    String?
+  price       Decimal?
+
+  variants    Variant[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([storeId, shopifyProductId])
+  @@index([storeId])
+}
+
+model Variant {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  shopifyVariantId String
+  title       String?  // Size, Color, etc.
+  sku         String?
+  price       Decimal?
+  inventoryQuantity Int @default(0)
+  inStock     Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, shopifyVariantId])
+  @@index([productId])
+  @@index([inStock])
+}
+
+// Email/SMS templates per store
+model Template {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  type        TemplateType
+  name        String
+  subject     String?  // For email
+  body        String   // HTML for email, text for SMS
+  isDefault   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+enum TemplateType {
+  RESTOCK_EMAIL
+  RESTOCK_SMS
+  THANKYOU_EMAIL
+  REMINDER_EMAIL
+}

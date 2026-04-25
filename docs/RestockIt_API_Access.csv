@@ -1,0 +1,33 @@
+RESTOCKIT - API & ACCESS TRACKER,,,,,,
+,,,,,,
+SECTION,Service,What You Need,Add To,Sign Up URL,Status,Notes
+,,,,,,
+🔐 SHOPIFY (Required),,,,,,
+,Shopify Partners,Partner Account,N/A,https://partners.shopify.com,⬜ Not Started,Free - create app here
+,Shopify App,API Key,SHOPIFY_API_KEY in .env,Partners Dashboard → App → API credentials,⬜ Not Started,Auto-generated when you create app
+,Shopify App,API Secret,SHOPIFY_API_SECRET in .env,Partners Dashboard → App → API credentials,⬜ Not Started,Auto-generated when you create app
+,Development Store,Test Store,N/A,Partners Dashboard → Stores → Add store,⬜ Not Started,Free unlimited dev stores
+,,,,,,
+📧 EMAIL (Required),,,,,,
+,SendGrid,API Key,SENDGRID_API_KEY in .env,https://sendgrid.com,⬜ Not Started,Free: 100 emails/day
+,SendGrid,From Email,SENDGRID_FROM_EMAIL in .env,Sender Authentication in dashboard,⬜ Not Started,Verify your domain
+,Mailgun,API Key,MAILGUN_API_KEY in .env,https://mailgun.com,⬜ Not Started,Free: 5000/month (backup)
+,Mailgun,Domain,MAILGUN_DOMAIN in .env,Mailgun Dashboard → Domains,⬜ Not Started,Use subdomain like mg.yourdomain.com
+,,,,,,
+🗄️ DATABASE (Required),,,,,,
+,Supabase,Project URL + Key,DATABASE_URL in .env,https://supabase.com,⬜ Not Started,Free: 500MB + 2 projects
+,,,,,,
+🌐 HOSTING (Required),,,,,,
+,Vercel,Account,Deploy from GitHub,https://vercel.com,⬜ Not Started,Free: unlimited deploys
+,Domain,Custom domain,Vercel Dashboard → Domains,https://namecheap.com,⬜ Not Started,Optional - can use .vercel.app
+,,,,,,
+🔧 DEVELOPMENT (Required),,,,,,
+,ngrok,Auth Token,NGROK_AUTH_TOKEN (optional),https://ngrok.com,⬜ Not Started,Free: for webhook testing
+,Node.js,v18+,Install locally,https://nodejs.org,⬜ Not Started,Required to run app
+,,,,,,
+📱 PHASE 2 (Later),,,,,,
+,Twilio,Account SID,TWILIO_ACCOUNT_SID in .env,https://twilio.com,⬜ Not Started,SMS - pay per message
+,Twilio,Auth Token,TWILIO_AUTH_TOKEN in .env,Twilio Console,⬜ Not Started,~$0.01 per SMS
+,Twilio,Phone Number,TWILIO_PHONE_NUMBER in .env,Twilio Console → Phone Numbers,⬜ Not Started,~$1/month per number
+,Klaviyo,API Key,KLAVIYO_API_KEY in .env,https://klaviyo.com,⬜ Not Started,Email marketing sync
+,Mailchimp,API Key,MAILCHIMP_API_KEY in .env,https://mailchimp.com,⬜ Not Started,Email marketing sync
