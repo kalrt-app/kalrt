@@ -1,11 +1,12 @@
 {
-  "name": "restockit",
+  "name": "kalrt",
   "version": "0.1.0",
   "private": true,
-  "description": "Shopify back-in-stock notification app",
+  "description": "KALRT - Shopify back-in-stock notification app",
   "scripts": {
-    "dev": "shopify app dev",
+    "dev": "remix vite:dev",
     "build": "remix vite:build",
+    "start": "remix-serve ./build/server/index.js",
     "deploy": "shopify app deploy",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -26,7 +27,8 @@
     "mailgun.js": "^10.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "twilio": "^5.0.0"
+    "twilio": "^5.0.0",
+    "@remix-run/serve": "^2.8.0"
   },
   "devDependencies": {
     "@prisma/client": "^5.22.0",
