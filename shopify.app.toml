@@ -1,0 +1,50 @@
+# KALRT Shopify App Configuration
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "KALRT"
+client_id = "79bb854690b3e95fb20d80e86111e319"
+application_url = "https://restockit-theta.vercel.app"
+embedded = true
+
+[access_scopes]
+scopes = "read_products,write_products,read_inventory,write_inventory,read_orders"
+
+[auth]
+redirect_urls = [
+  "https://restockit-theta.vercel.app/auth/callback",
+  "https://restockit-theta.vercel.app/auth/shopify/callback",
+  "https://restockit-theta.vercel.app/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-10"
+
+[[webhooks.subscriptions]]
+topics = ["inventory_levels/update"]
+uri = "/webhooks/inventory"
+
+[[webhooks.subscriptions]]
+topics = ["products/update", "products/delete"]
+uri = "/webhooks/products"
+
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/webhooks/app-uninstalled"
+
+# orders/create webhook requires protected customer data approval
+# Re-enable after approval in Partners dashboard
+# [[webhooks.subscriptions]]
+# topics = ["orders/create"]
+# uri = "/webhooks/orders"
+
+[app_proxy]
+url = "https://restockit-theta.vercel.app/api/proxy"
+subpath = "kalrt"
+prefix = "apps"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "kalrt-dev.myshopify.com"
