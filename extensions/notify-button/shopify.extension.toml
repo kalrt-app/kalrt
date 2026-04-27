@@ -1,0 +1,24 @@
+# KALRT Theme App Extension - Notify Me Button
+# Auto-injects "Notify Me" button on sold-out products (no manual setup required)
+
+api_version = "2024-10"
+uid = "7c6f7585-a43f-3866-f2cf-deeeb64be3cb2f44ecfa"
+
+[[extensions]]
+type = "theme"
+name = "KALRT Notify Button"
+handle = "kalrt-notify-button"
+
+  [extensions.capabilities]
+  ajax_api = true
+  network_access = true
+
+  # App Embed Block - auto-injects on all pages
+  [[extensions.targeting]]
+  module = "./blocks/kalrt-embed.liquid"
+  target = "head"
+
+  # Keep the manual block as fallback option
+  [[extensions.targeting]]
+  module = "./blocks/notify-button.liquid"
+  target = "section"

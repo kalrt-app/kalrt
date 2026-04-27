@@ -1,0 +1,747 @@
+{% comment %}
+  KALRT Auto-Inject Embed
+  Modal popup pattern for higher conversion (11.9% vs 3%)
+  Auto-detects sold-out products, shows compact button, expands to modal
+{% endcomment %}
+
+<script>
+(function() {
+  'use strict';
+
+  const KALRT = {
+    config: {
+      buttonText: {{ block.settings.button_text | json }},
+      buttonColor: {{ block.settings.button_color | json }},
+      successMessage: {{ block.settings.success_message | json }},
+      collectPhone: {{ block.settings.collect_phone | json }},
+      proxyUrl: '/apps/kalrt/subscribe'
+    },
+
+    // Common selectors for sold-out buttons across themes
+    soldOutSelectors: [
+      'button[disabled]:not([type="submit"])',
+      '.shopify-payment-button button[disabled]',
+      'button.sold-out',
+      'button.disabled',
+      '[data-add-to-cart][disabled]',
+      '.product-form__submit[disabled]',
+      '.add-to-cart[disabled]',
+      '.btn--sold-out',
+      '.product__submit__add[disabled]',
+      'button[name="add"][disabled]',
+      '.AddToCart[disabled]',
+      '.addtocart-button[disabled]'
+    ],
+
+    // Common selectors for buy button containers
+    buyButtonContainerSelectors: [
+      '.product-form__buttons',
+      '.product-form__submit-container',
+      '.product__submit',
+      '.product-single__add-to-cart',
+      '.shopify-product-form',
+      '.product-form',
+      '[data-product-form]',
+      '.add-to-cart-wrapper',
+      '.product__add-to-cart',
+      'form[action*="/cart/add"]'
+    ],
+
+    init() {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => this.checkAndInject());
+      } else {
+        this.checkAndInject();
+      }
+      this.observeVariantChanges();
+    },
+
+    checkAndInject() {
+      if (!this.isProductPage()) return;
+      if (this.isSoldOut()) {
+        this.injectNotifyButton();
+      }
+    },
+
+    isProductPage() {
+      return window.location.pathname.includes('/products/') ||
+             document.querySelector('[data-product-id]') ||
+             document.querySelector('.product-single') ||
+             document.querySelector('.product__info') ||
+             typeof window.ShopifyAnalytics?.meta?.product !== 'undefined';
+    },
+
+    isSoldOut() {
+      for (const selector of this.soldOutSelectors) {
+        const btn = document.querySelector(selector);
+        if (btn) {
+          const text = btn.textContent.toLowerCase();
+          if (text.includes('sold out') || text.includes('unavailable') || text.includes('out of stock')) {
+            return true;
+          }
+        }
+      }
+
+      const addToCart = document.querySelector('button[name="add"], .add-to-cart, [data-add-to-cart]');
+      if (addToCart && addToCart.disabled) {
+        return true;
+      }
+
+      const productJson = document.querySelector('[data-product-json], script[data-product-json], #ProductJson');
+      if (productJson) {
+        try {
+          const data = JSON.parse(productJson.textContent);
+          if (data.available === false) return true;
+        } catch (e) {}
+      }
+
+      return false;
+    },
+
+    findBuyButtonContainer() {
+      for (const selector of this.buyButtonContainerSelectors) {
+        const container = document.querySelector(selector);
+        if (container) return container;
+      }
+      return document.querySelector('form[action*="/cart/add"]');
+    },
+
+    getProductInfo() {
+      let productId = null;
+      let variantId = null;
+      let productTitle = document.querySelector('h1')?.textContent?.trim() || '';
+      let variants = [];
+
+      if (window.ShopifyAnalytics?.meta?.product) {
+        productId = window.ShopifyAnalytics.meta.product.id;
+        variants = window.ShopifyAnalytics.meta.product.variants || [];
+        variantId = variants[0]?.id;
+      }
+
+      const productJson = document.querySelector('[data-product-json], script[data-product-json]');
+      if (productJson) {
+        try {
+          const data = JSON.parse(productJson.textContent);
+          productId = productId || data.id;
+          productTitle = productTitle || data.title;
+          variants = variants.length ? variants : (data.variants || []);
+          variantId = variantId || variants[0]?.id;
+        } catch (e) {}
+      }
+
+      if (!productId) {
+        const form = document.querySelector('form[action*="/cart/add"]');
+        const variantInput = form?.querySelector('input[name="id"]');
+        variantId = variantId || variantInput?.value;
+      }
+
+      const productEl = document.querySelector('[data-product-id]');
+      productId = productId || productEl?.dataset?.productId;
+
+      const variantEl = document.querySelector('[data-variant-id], select[name="id"], input[name="id"]');
+      variantId = variantId || variantEl?.value || variantEl?.dataset?.variantId;
+
+      // Filter to sold-out variants only
+      const soldOutVariants = variants.filter(v => !v.available);
+
+      return { productId, variantId, productTitle, variants: soldOutVariants };
+    },
+
+    getCountryCode() {
+      // Auto-detect country from navigator
+      const lang = navigator.language || navigator.userLanguage || 'en-US';
+      const countryMap = {
+        'en-US': '+1', 'en-GB': '+44', 'en-AU': '+61', 'en-CA': '+1',
+        'de': '+49', 'fr': '+33', 'es': '+34', 'it': '+39',
+        'nl': '+31', 'pt': '+351', 'pt-BR': '+55',
+        'ja': '+81', 'ko': '+82', 'zh': '+86',
+        'ar': '+971', 'hi': '+91', 'pk': '+92'
+      };
+      return countryMap[lang] || countryMap[lang.split('-')[0]] || '+1';
+    },
+
+    injectNotifyButton() {
+      if (document.querySelector('.kalrt-notify-container')) return;
+
+      const container = this.findBuyButtonContainer();
+      if (!container) {
+        console.warn('KALRT: Could not find buy button container');
+        return;
+      }
+
+      const { productId, variantId, productTitle, variants } = this.getProductInfo();
+
+      const widget = document.createElement('div');
+      widget.className = 'kalrt-notify-container';
+      widget.innerHTML = this.getWidgetHTML(productId, variantId, productTitle, variants);
+
+      container.parentNode.insertBefore(widget, container.nextSibling);
+      this.injectStyles();
+      this.bindEvents();
+
+      console.log('KALRT: Notify button injected successfully');
+    },
+
+    getWidgetHTML(productId, variantId, productTitle, variants) {
+      const hasMultipleVariants = variants.length > 1;
+      const countryCode = this.getCountryCode();
+
+      const variantOptions = hasMultipleVariants
+        ? variants.map(v => `<option value="${v.id}">${this.escapeHtml(v.title)}</option>`).join('')
+        : '';
+
+      return `
+        <!-- Compact Button (Initial State) -->
+        <button type="button" class="kalrt-trigger-btn" id="kalrt-trigger" style="background: ${this.config.buttonColor}">
+          <svg class="kalrt-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          ${this.config.buttonText}
+        </button>
+
+        <!-- Modal Overlay -->
+        <div class="kalrt-modal-overlay" id="kalrt-overlay" style="display: none;">
+          <div class="kalrt-modal" id="kalrt-modal">
+            <button type="button" class="kalrt-modal-close" id="kalrt-close">&times;</button>
+
+            <!-- Modal Header -->
+            <div class="kalrt-modal-header">
+              <div class="kalrt-modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </div>
+              <h3 class="kalrt-modal-title">Get Notified</h3>
+              <p class="kalrt-modal-subtitle">We'll email you when <strong>${this.escapeHtml(productTitle || 'this product')}</strong> is back in stock.</p>
+            </div>
+
+            <!-- Form -->
+            <form id="kalrt-form" class="kalrt-form">
+              ${hasMultipleVariants ? `
+                <div class="kalrt-field">
+                  <label class="kalrt-label">Size / Option</label>
+                  <select class="kalrt-select" id="kalrt-variant" name="variant">
+                    <option value="">All variants</option>
+                    ${variantOptions}
+                  </select>
+                </div>
+              ` : ''}
+
+              <div class="kalrt-field">
+                <label class="kalrt-label">Email <span class="kalrt-required">*</span></label>
+                <input type="email" class="kalrt-input" id="kalrt-email" placeholder="you@example.com" required>
+              </div>
+
+              ${this.config.collectPhone ? `
+                <div class="kalrt-field">
+                  <label class="kalrt-checkbox-wrap">
+                    <input type="checkbox" id="kalrt-sms-toggle" class="kalrt-checkbox">
+                    <span>Also notify me via SMS</span>
+                  </label>
+                  <div class="kalrt-phone-wrap" id="kalrt-phone-wrap" style="display: none;">
+                    <select class="kalrt-country-code" id="kalrt-country">
+                      <option value="+1" ${countryCode === '+1' ? 'selected' : ''}>+1</option>
+                      <option value="+44" ${countryCode === '+44' ? 'selected' : ''}>+44</option>
+                      <option value="+61" ${countryCode === '+61' ? 'selected' : ''}>+61</option>
+                      <option value="+49" ${countryCode === '+49' ? 'selected' : ''}>+49</option>
+                      <option value="+33" ${countryCode === '+33' ? 'selected' : ''}>+33</option>
+                      <option value="+91" ${countryCode === '+91' ? 'selected' : ''}>+91</option>
+                      <option value="+92" ${countryCode === '+92' ? 'selected' : ''}>+92</option>
+                      <option value="+86" ${countryCode === '+86' ? 'selected' : ''}>+86</option>
+                      <option value="+81" ${countryCode === '+81' ? 'selected' : ''}>+81</option>
+                      <option value="+971" ${countryCode === '+971' ? 'selected' : ''}>+971</option>
+                    </select>
+                    <input type="tel" class="kalrt-phone-input" id="kalrt-phone" placeholder="Phone number">
+                  </div>
+                </div>
+              ` : ''}
+
+              <button type="submit" class="kalrt-submit-btn" id="kalrt-submit" style="background: ${this.config.buttonColor}"
+                data-product-id="${productId}"
+                data-variant-id="${variantId || ''}"
+                data-product-title="${this.escapeHtml(productTitle)}">
+                Notify Me
+              </button>
+
+              <div id="kalrt-error" class="kalrt-error" style="display: none;"></div>
+            </form>
+
+            <!-- Success State -->
+            <div id="kalrt-success" class="kalrt-success" style="display: none;">
+              <div class="kalrt-success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+              </div>
+              <h3 class="kalrt-success-title">You're on the list!</h3>
+              <p class="kalrt-success-text">${this.config.successMessage}</p>
+            </div>
+
+            <p class="kalrt-privacy">We respect your privacy. Unsubscribe anytime.</p>
+          </div>
+        </div>
+      `;
+    },
+
+    bindEvents() {
+      // Open modal
+      document.getElementById('kalrt-trigger')?.addEventListener('click', () => {
+        document.getElementById('kalrt-overlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('kalrt-email')?.focus();
+      });
+
+      // Close modal
+      const closeModal = () => {
+        document.getElementById('kalrt-overlay').style.display = 'none';
+        document.body.style.overflow = '';
+      };
+
+      document.getElementById('kalrt-close')?.addEventListener('click', closeModal);
+      document.getElementById('kalrt-overlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'kalrt-overlay') closeModal();
+      });
+
+      // ESC key closes modal
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+
+      // SMS toggle
+      document.getElementById('kalrt-sms-toggle')?.addEventListener('change', (e) => {
+        const phoneWrap = document.getElementById('kalrt-phone-wrap');
+        if (phoneWrap) {
+          phoneWrap.style.display = e.target.checked ? 'flex' : 'none';
+        }
+      });
+
+      // Variant selector updates submit button
+      document.getElementById('kalrt-variant')?.addEventListener('change', (e) => {
+        const btn = document.getElementById('kalrt-submit');
+        if (btn && e.target.value) {
+          btn.dataset.variantId = e.target.value;
+        }
+      });
+
+      // Form submit
+      document.getElementById('kalrt-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await this.handleSubmit();
+      });
+    },
+
+    async handleSubmit() {
+      const button = document.getElementById('kalrt-submit');
+      const email = document.getElementById('kalrt-email')?.value;
+      const country = document.getElementById('kalrt-country')?.value || '';
+      const phone = document.getElementById('kalrt-phone')?.value || '';
+      const form = document.getElementById('kalrt-form');
+      const success = document.getElementById('kalrt-success');
+      const errorDiv = document.getElementById('kalrt-error');
+      const variantSelect = document.getElementById('kalrt-variant');
+
+      if (!email || !email.includes('@')) {
+        errorDiv.textContent = 'Please enter a valid email address';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      button.disabled = true;
+      button.innerHTML = '<span class="kalrt-spinner"></span> Submitting...';
+      errorDiv.style.display = 'none';
+
+      try {
+        const fullPhone = phone ? `${country}${phone.replace(/\D/g, '')}` : '';
+        const variantId = variantSelect?.value || button.dataset.variantId;
+
+        const response = await fetch(this.config.proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            phone: fullPhone,
+            productId: button.dataset.productId,
+            variantId: variantId,
+            productTitle: button.dataset.productTitle
+          })
+        });
+
+        if (response.ok) {
+          form.style.display = 'none';
+          success.style.display = 'block';
+
+          // Update trigger button to show subscribed state
+          const trigger = document.getElementById('kalrt-trigger');
+          if (trigger) {
+            trigger.innerHTML = '<svg class="kalrt-bell-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6L9 17l-5-5"></path></svg> Subscribed';
+            trigger.classList.add('kalrt-subscribed');
+          }
+        } else {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Something went wrong. Please try again.');
+        }
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.style.display = 'block';
+        button.disabled = false;
+        button.textContent = 'Notify Me';
+      }
+    },
+
+    injectStyles() {
+      if (document.querySelector('#kalrt-styles')) return;
+
+      const styles = document.createElement('style');
+      styles.id = 'kalrt-styles';
+      styles.textContent = `
+        .kalrt-notify-container {
+          margin: 16px 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Trigger Button */
+        .kalrt-trigger-btn {
+          width: 100%;
+          padding: 16px 24px;
+          background: ${this.config.buttonColor};
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .kalrt-trigger-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .kalrt-trigger-btn.kalrt-subscribed {
+          background: #10b981 !important;
+        }
+        .kalrt-bell-icon {
+          width: 20px;
+          height: 20px;
+        }
+
+        /* Modal Overlay */
+        .kalrt-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          padding: 20px;
+          backdrop-filter: blur(4px);
+        }
+
+        /* Modal */
+        .kalrt-modal {
+          background: white;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 400px;
+          padding: 32px;
+          position: relative;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+          animation: kalrt-slide-up 0.3s ease;
+        }
+        @keyframes kalrt-slide-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .kalrt-modal-close {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: #f3f4f6;
+          border-radius: 50%;
+          font-size: 20px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #6b7280;
+          transition: all 0.2s;
+        }
+        .kalrt-modal-close:hover {
+          background: #e5e7eb;
+          color: #111;
+        }
+
+        /* Modal Header */
+        .kalrt-modal-header {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .kalrt-modal-icon {
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, ${this.config.buttonColor}20, ${this.config.buttonColor}10);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+        }
+        .kalrt-modal-icon svg {
+          width: 28px;
+          height: 28px;
+          stroke: ${this.config.buttonColor};
+        }
+        .kalrt-modal-title {
+          font-size: 22px;
+          font-weight: 700;
+          color: #111;
+          margin: 0 0 8px;
+        }
+        .kalrt-modal-subtitle {
+          font-size: 15px;
+          color: #6b7280;
+          margin: 0;
+          line-height: 1.5;
+        }
+        .kalrt-modal-subtitle strong {
+          color: #111;
+        }
+
+        /* Form */
+        .kalrt-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .kalrt-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .kalrt-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+        .kalrt-required {
+          color: #ef4444;
+        }
+        .kalrt-input, .kalrt-select {
+          padding: 14px 16px;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 10px;
+          font-size: 15px;
+          transition: all 0.2s;
+          background: white;
+        }
+        .kalrt-input:focus, .kalrt-select:focus {
+          outline: none;
+          border-color: ${this.config.buttonColor};
+          box-shadow: 0 0 0 4px ${this.config.buttonColor}15;
+        }
+
+        /* Checkbox */
+        .kalrt-checkbox-wrap {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          color: #374151;
+          cursor: pointer;
+        }
+        .kalrt-checkbox {
+          width: 18px;
+          height: 18px;
+          accent-color: ${this.config.buttonColor};
+        }
+
+        /* Phone field */
+        .kalrt-phone-wrap {
+          display: flex;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .kalrt-country-code {
+          width: 80px;
+          padding: 12px;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 10px;
+          font-size: 14px;
+        }
+        .kalrt-phone-input {
+          flex: 1;
+          padding: 12px 16px;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 10px;
+          font-size: 15px;
+        }
+        .kalrt-phone-input:focus, .kalrt-country-code:focus {
+          outline: none;
+          border-color: ${this.config.buttonColor};
+        }
+
+        /* Submit Button */
+        .kalrt-submit-btn {
+          padding: 16px;
+          background: ${this.config.buttonColor};
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        .kalrt-submit-btn:hover:not(:disabled) {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+        .kalrt-submit-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        .kalrt-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid transparent;
+          border-top-color: white;
+          border-radius: 50%;
+          animation: kalrt-spin 0.8s linear infinite;
+        }
+        @keyframes kalrt-spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .kalrt-error {
+          padding: 12px;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 8px;
+          color: #dc2626;
+          font-size: 14px;
+          text-align: center;
+        }
+
+        /* Success */
+        .kalrt-success {
+          text-align: center;
+          padding: 20px 0;
+        }
+        .kalrt-success-icon {
+          width: 64px;
+          height: 64px;
+          background: #ecfdf5;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+        }
+        .kalrt-success-icon svg {
+          width: 32px;
+          height: 32px;
+          stroke: #10b981;
+        }
+        .kalrt-success-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #111;
+          margin: 0 0 8px;
+        }
+        .kalrt-success-text {
+          font-size: 15px;
+          color: #6b7280;
+          margin: 0;
+        }
+
+        /* Privacy */
+        .kalrt-privacy {
+          font-size: 12px;
+          color: #9ca3af;
+          text-align: center;
+          margin: 16px 0 0;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+          .kalrt-modal {
+            padding: 24px;
+            margin: 10px;
+          }
+          .kalrt-modal-title {
+            font-size: 20px;
+          }
+        }
+      `;
+      document.head.appendChild(styles);
+    },
+
+    escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    },
+
+    observeVariantChanges() {
+      document.addEventListener('change', (e) => {
+        if (e.target.matches('select[name="id"], input[name="id"], [data-variant-selector]')) {
+          const existing = document.querySelector('.kalrt-notify-container');
+          if (existing) existing.remove();
+          setTimeout(() => this.checkAndInject(), 100);
+        }
+      });
+    }
+  };
+
+  KALRT.init();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "KALRT Notify Button",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "Notify Me When Available"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button Color",
+      "default": "#ff6b4a"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "Success Message",
+      "default": "We'll email you the moment this is back in stock."
+    },
+    {
+      "type": "checkbox",
+      "id": "collect_phone",
+      "label": "Allow SMS Notifications",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
