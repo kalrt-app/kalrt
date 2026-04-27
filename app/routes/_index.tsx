@@ -3,8 +3,24 @@
  * Inspired by Notify Me! - Comprehensive navigation, Shopify-focused
  */
 
-import type { MetaFunction } from "@remix-run/node";
+import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 import { Link } from "@remix-run/react";
+
+// Redirect to app dashboard if accessed from Shopify admin
+export async function loader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const shop = url.searchParams.get("shop");
+  const host = url.searchParams.get("host");
+
+  // If shop and host params exist, this is a Shopify admin request
+  if (shop && host) {
+    return redirect(`/app?shop=${shop}&host=${host}`);
+  }
+
+  // Otherwise show the public landing page
+  return null;
+}
 import { useState, useEffect, useRef } from "react";
 
 export const meta: MetaFunction = () => {
