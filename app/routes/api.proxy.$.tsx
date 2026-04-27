@@ -13,6 +13,13 @@ import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
+// CORS headers for direct storefront requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 // Verify Shopify app proxy signature
 function verifyAppProxySignature(
   query: URLSearchParams,
@@ -39,16 +46,21 @@ function verifyAppProxySignature(
   return hmac === signature;
 }
 
-// GET requests (health check, etc.)
+// GET requests (health check, etc.) and OPTIONS preflight
 export async function loader({ request }: LoaderFunctionArgs) {
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   const url = new URL(request.url);
   const path = url.pathname.replace("/api/proxy", "");
 
   if (path === "/health" || path === "") {
-    return json({ status: "ok", service: "kalrt" });
+    return json({ status: "ok", service: "kalrt" }, { headers: corsHeaders });
   }
 
-  return json({ error: "Not found" }, { status: 404 });
+  return json({ error: "Not found" }, { status: 404, headers: corsHeaders });
 }
 
 // POST requests (subscribe, etc.)
@@ -68,15 +80,17 @@ async function handleSubscribe(request: Request) {
   try {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
+    const origin = request.headers.get("origin") || "";
+    const isDirectCall = origin.includes("myshopify.com") || !shop;
 
-    // Verify app proxy signature in production
-    if (process.env.NODE_ENV === "production") {
+    // Verify app proxy signature ONLY for proxy calls (not direct storefront calls)
+    if (process.env.NODE_ENV === "production" && shop && !isDirectCall) {
       const isValid = verifyAppProxySignature(
         url.searchParams,
         process.env.SHOPIFY_API_SECRET || ""
       );
       if (!isValid) {
-        return json({ error: "Invalid signature" }, { status: 401 });
+        return json({ error: "Invalid signature" }, { status: 401, headers: corsHeaders });
       }
     }
 
@@ -85,22 +99,29 @@ async function handleSubscribe(request: Request) {
 
     // Validate required fields
     if (!email || !email.includes("@")) {
-      return json({ error: "Valid email required" }, { status: 400 });
+      return json({ error: "Valid email required" }, { status: 400, headers: corsHeaders });
     }
 
     if (!productId) {
-      return json({ error: "Product ID required" }, { status: 400 });
+      return json({ error: "Product ID required" }, { status: 400, headers: corsHeaders });
     }
 
-    // Get store from database
-    const shopDomain = shop || url.searchParams.get("logged_in_customer_id")?.split("/")[0];
+    // Get store from database - use origin for direct calls
+    let shopDomain = shop || url.searchParams.get("logged_in_customer_id")?.split("/")[0];
+
+    // For direct storefront calls, extract shop from origin
+    if (!shopDomain && origin) {
+      const match = origin.match(/https?:\/\/([^\/]+)/);
+      shopDomain = match?.[1] || "kalrt-dev.myshopify.com";
+    }
 
     if (!shopDomain) {
       // In dev, create or find a default store
       if (process.env.NODE_ENV !== "production") {
         console.log("[KALRT] Dev mode - using default store");
+        shopDomain = "kalrt-dev.myshopify.com";
       } else {
-        return json({ error: "Shop not identified" }, { status: 400 });
+        return json({ error: "Shop not identified" }, { status: 400, headers: corsHeaders });
       }
     }
 
@@ -137,7 +158,7 @@ async function handleSubscribe(request: Request) {
         success: true,
         message: "You're already subscribed! We'll notify you when it's back.",
         alreadySubscribed: true,
-      });
+      }, { headers: corsHeaders });
     }
 
     // Create new subscriber
@@ -163,12 +184,12 @@ async function handleSubscribe(request: Request) {
       success: true,
       message: "You're on the list! We'll notify you when it's back in stock.",
       subscriberId: subscriber.id,
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("[KALRT] Subscribe error:", error);
     return json(
       { error: "Something went wrong. Please try again." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

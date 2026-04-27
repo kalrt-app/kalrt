@@ -15,8 +15,8 @@
       buttonColor: {{ block.settings.button_color | json }},
       successMessage: {{ block.settings.success_message | json }},
       collectPhone: {{ block.settings.collect_phone | json }},
-      // Temporary: Direct to Vercel until proxy is fixed
-      proxyUrl: 'https://kalrt-aamirmursleens-projects.vercel.app/api/storefront/subscribe'
+      // Direct to Vercel with CORS (app proxy not working on dev store)
+      proxyUrl: 'https://kalrt-aamirmursleens-projects.vercel.app/api/proxy/subscribe'
     },
 
     // Common selectors for sold-out buttons across themes
