@@ -1,7 +1,8 @@
 {% comment %}
-  KALRT Auto-Inject Embed
+  KALRT Auto-Inject Embed v2.0
   Modal popup pattern for higher conversion (11.9% vs 3%)
   Auto-detects sold-out products, shows compact button, expands to modal
+  Cache-bust: 2026-04-27-v9
 {% endcomment %}
 
 <script>
@@ -14,7 +15,8 @@
       buttonColor: {{ block.settings.button_color | json }},
       successMessage: {{ block.settings.success_message | json }},
       collectPhone: {{ block.settings.collect_phone | json }},
-      proxyUrl: '/apps/kalrt/subscribe'
+      // Temporary: Direct to Vercel until proxy is fixed
+      proxyUrl: 'https://kalrt-aamirmursleens-projects.vercel.app/api/storefront/subscribe'
     },
 
     // Common selectors for sold-out buttons across themes

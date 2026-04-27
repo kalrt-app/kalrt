@@ -13,12 +13,7 @@ handle = "kalrt-notify-button"
   ajax_api = true
   network_access = true
 
-  # App Embed Block - auto-injects on all pages
+  # App Embed Block - auto-injects on sold-out products
   [[extensions.targeting]]
   module = "./blocks/kalrt-embed.liquid"
-  target = "head"
-
-  # Keep the manual block as fallback option
-  [[extensions.targeting]]
-  module = "./blocks/notify-button.liquid"
-  target = "section"
+  target = "body"

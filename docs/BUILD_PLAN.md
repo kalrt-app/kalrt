@@ -1,4 +1,4 @@
-# RestockIt Build Plan
+# KALRT Build Plan
 
 ## Prerequisites (Before Coding)
 
@@ -25,7 +25,7 @@
 
 ### 1.1 Shopify App Scaffolding
 ```bash
-npm init @shopify/app@latest restockit-app
+npm init @shopify/app@latest kalrt-app
 # Select: Remix template
 # Move contents to src/
 ```
@@ -299,7 +299,7 @@ src/components/
 
 ### 8.2 App Listing
 ```
-Name: RestockIt - Back in Stock Alerts
+Name: KALRT - Back in Stock Alerts
 Tagline: Reliable notifications. Honest pricing.
 
 Key Features:
@@ -378,6 +378,6 @@ Key Features:
 
 1. **Hosting:** Vercel, Railway, or Fly.io?
 2. **Free tier limit:** 50 notifications/month good?
-3. **Branding:** "Powered by RestockIt" on free tier?
+3. **Branding:** "Powered by KALRT" on free tier?
 4. **Pricing tiers:** Finalize pricing structure?
-5. **Domain:** restockit.com / restockit.app / other?
+5. **Domain:** kalrt.com / kalrt.app / other?

@@ -1,4 +1,4 @@
-# RestockIt
+# KALRT
 
 > Shopify back-in-stock notification app. Reliable. Transparent. Actually works.
 
@@ -14,7 +14,7 @@ We're building the alternative.
 
 ## Our Advantages
 
-| Feature | Competitors | RestockIt |
+| Feature | Competitors | KALRT |
 |---------|-------------|-----------|
 | Free notifications/mo | 10 | **50** |
 | Klaviyo integration | $20/mo+ | **Free** |
@@ -34,8 +34,8 @@ We're building the alternative.
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/restockit.git
-cd restockit
+git clone https://github.com/yourusername/kalrt.git
+cd kalrt
 
 # Install
 npm install
@@ -54,7 +54,7 @@ npm run dev
 ## Project Structure
 
 ```
-restockit/
+kalrt/
 ├── src/
 │   ├── app/              # Remix routes
 │   ├── components/       # UI components

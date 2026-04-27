@@ -1,13 +1,36 @@
 # KALRT - Shopify Back-in-Stock App
 
+> **IMPORTANT**: Read this file at every session start!
+
 ## What This Is
 Shopify embedded app competing with Notify Me!, STOQ, Appikon. Core promise: "The back-in-stock app that just works. Honest pricing. Reliable notifications."
+
+## Current Status (Updated Apr 25, 2026)
+| Component | Status |
+|-----------|--------|
+| Landing Page | ✅ COMPLETE |
+| Dashboard UI (10 pages) | ✅ COMPLETE (mockups) |
+| Prisma Schema | ✅ COMPLETE |
+| Supabase DB | ✅ MIGRATED (6 tables) |
+| Shopify Partner | ✅ REGISTERED |
+| shopify.app.toml | ✅ CREATED |
+| OAuth (shopify.server.ts) | ✅ CREATED (needs testing) |
+| Theme Extension | ✅ CREATED (extensions/notify-button/) |
+| Webhooks | ⏳ CONFIGURED (handlers not built) |
+| Backend Logic | ❌ NOT CONNECTED |
+
+## Shopify Partner Credentials
+- **Partner Account:** Nafran Pvt Ltd
+- **App Name:** KALRT
+- **Client ID:** 79bb854690b3e95fb20d80e86111e319
+- **Secret:** (stored in .env)
+- **Contact:** aamir@nafran.com
+- **Created:** April 25, 2026
 
 ## Brand
 - **Name:** KALRT (pronounced "K-alert")
 - **Domain:** kalrt.com (to purchase)
-- **GitHub:** github.com/kalrt-app/kalrt
-- **Supabase:** yryloxjlyxhasydecgwj.supabase.co
+- **Supabase:** db.yryloxjlyxhasydecgwj.supabase.co
 
 ## Stack
 - **Framework:** Remix (Shopify's recommended)
@@ -97,22 +120,25 @@ orders/create            → Track conversions
 - Never store raw access tokens in logs
 
 ## Current Phase: MVP
-Target: 6 weeks to App Store
+Target: App Store submission
 
 ### MVP Checklist
-1. [ ] Shopify app auth (OAuth flow)
-2. [ ] Database setup (Prisma + PostgreSQL)
+1. [ ] Shopify app auth (OAuth flow) — NEXT
+2. [x] Database setup (Prisma + PostgreSQL) — DONE on Supabase
 3. [ ] Webhook handling (inventory_levels/update)
 4. [ ] Theme App Extension (Notify Me button)
-5. [ ] Email collection form
-6. [ ] Basic email sending (SendGrid)
-7. [ ] Admin dashboard (requests, notifications, stats)
+5. [ ] Email collection form (storefront API)
+6. [ ] Basic email sending (SendGrid/Resend)
+7. [x] Admin dashboard (requests, notifications, stats) — UI DONE (needs backend)
 8. [ ] Variant-level tracking
-9. [ ] Email template editor
+9. [x] Email template editor — UI DONE (needs backend)
 10. [ ] App Store submission
 
+### What's Needed to Continue
+- **Dev Store URL** — Create in Partners → Stores → Development store
+
 ## Competitive Edge
-| Feature | Competitors | RestockIt |
+| Feature | Competitors | KALRT |
 |---------|-------------|-----------|
 | Free notifications/mo | 10 | **50** |
 | Klaviyo/Mailchimp | $20/mo+ | **Free** |

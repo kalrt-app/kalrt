@@ -1,4 +1,4 @@
-# RestockIt UI/UX Blueprint
+# KALRT UI/UX Blueprint
 *Research-based design guidelines for a top-tier Shopify app experience*
 
 ---
@@ -18,7 +18,7 @@
 
 ### Competitor Weaknesses (Our Opportunity)
 
-| Competitor | UI Problem | RestockIt Solution |
+| Competitor | UI Problem | KALRT Solution |
 |------------|------------|-------------------|
 | **Notify Me!** | Slow iframe, cluttered | Native Polaris, fast, clean |
 | **Appikon** | Complex setup | One-click install, guided setup |
@@ -26,7 +26,7 @@
 
 ---
 
-## Design Principles for RestockIt
+## Design Principles for KALRT
 
 ### 1. Native Feel
 - Use **Shopify Polaris** components exclusively
@@ -56,7 +56,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  RestockIt                                          │
+│  KALRT                                          │
 ├──────────┬──────────┬──────────┬───────────────────┤
 │ 📊 Home  │ 👥 Subs  │ 📧 Emails │ ⚙️ Settings      │
 └──────────┴──────────┴──────────┴───────────────────┘
@@ -175,7 +175,7 @@
 │  ┌──────────────┬──────────────────────────────────┐│
 │  │              │                                  ││
 │  │ General      │  Sender Name                     ││
-│  │ Email        │  [RestockIt Alerts         ]    ││
+│  │ Email        │  [KALRT Alerts         ]    ││
 │  │ SMS          │                                  ││
 │  │ Branding     │  Reply-to Email                  ││
 │  │ Integrations │  [support@store.com        ]    ││
@@ -288,7 +288,7 @@ Step 3 of 3: Test It!
 
 ```
 ┌─────────────────┐
-│  RestockIt      │
+│  KALRT      │
 ├─────────────────┤
 │ ┌─────┐ ┌─────┐ │
 │ │1,234│ │ 89  │ │
@@ -354,9 +354,9 @@ Polaris handles this automatically with responsive `Layout` components.
 
 ---
 
-## Summary: RestockIt UX Advantages
+## Summary: KALRT UX Advantages
 
-| vs Competitors | RestockIt |
+| vs Competitors | KALRT |
 |----------------|-----------|
 | Slow iframe | Native Polaris (2x faster) |
 | 6-8 confusing tabs | 4 simple tabs |
