@@ -9,7 +9,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
 
