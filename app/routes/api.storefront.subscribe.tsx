@@ -8,7 +8,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -59,7 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!store) {
       store = await prisma.store.create({
         data: {
-          id: crypto.randomUUID(),
+          id: randomUUID(),
           shopDomain,
           accessToken: "storefront-direct",
           updatedAt: new Date(),
@@ -89,7 +89,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Create new subscriber
     const subscriber = await prisma.subscriber.create({
       data: {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         storeId: store.id,
         email: email.toLowerCase().trim(),
         phone: phone?.trim() || null,
